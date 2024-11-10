@@ -27,7 +27,7 @@ def create_sequences(data, target, sequence_length):
 
 def dataPreprocessing(tic):
     # 1. Data Loading
-    data = pd.read_csv('data0_200/train_data_0_20.csv')
+    data = pd.read_csv(r'C:\Users\Haoran Yang\iCloudDrive\PycharmProjects\BBG_Capstone\data0_200\train_data_0_20.csv')
     data = data[data.tic == tic]
 
     # Split into train and test datasets
