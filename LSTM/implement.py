@@ -59,16 +59,14 @@ def getAnomalies(tic):
         X_train_pred = model(X_train_tensor)
         train_mae_loss = torch.mean(torch.abs(X_train_pred - y_train_tensor), dim=1).numpy()
 
-    train_threshold = np.percentile(train_mae_loss, 95)
+    train_threshold = np.percentile(train_mae_loss, 98)
     train_score_df = pd.DataFrame(train[sequence_length:]).reset_index(drop=True)
     train_score_df['loss'] = train_mae_loss
     train_score_df['threshold'] = train_threshold
     train_score_df['anomaly'] = train_score_df['loss'] > train_score_df['threshold']
-    train_score_df['close'] = scaler_target.inverse_transform(y_train.reshape(-1, 1))
-    train_dates = train_data['date'].reset_index(drop=True)
-    train_score_df['date'] = pd.to_datetime(train_dates)
-    train_score_df['tic'] = tic
-    train_score_df['set'] = 'train'
+
+    # Inverse transform the close prices back to their original scale
+    train_score_df['close'] = scaler_target.inverse_transform(train[sequence_length:]['close'].values.reshape(-1, 1))
 
     # Test data predictions and anomaly detection
     with torch.no_grad():
@@ -80,11 +78,9 @@ def getAnomalies(tic):
     test_score_df['loss'] = test_mae_loss
     test_score_df['threshold'] = test_threshold
     test_score_df['anomaly'] = test_score_df['loss'] > test_score_df['threshold']
-    test_score_df['close'] = scaler_target.inverse_transform(test_score_df['close'].values.reshape(-1, 1))
-    test_dates = test_data['date'].reset_index(drop=True)
-    test_score_df['date'] = pd.to_datetime(test_dates[:len(test_mae_loss)])
-    test_score_df['tic'] = tic
-    test_score_df['set'] = 'test'
+
+    # Inverse transform the close prices back to their original scale
+    test_score_df['close'] = scaler_target.inverse_transform(test[sequence_length:]['close'].values.reshape(-1, 1))
 
     # Combine train and test DataFrames
     combined_df = pd.concat([train_score_df, test_score_df], ignore_index=True)
