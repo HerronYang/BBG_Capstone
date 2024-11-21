@@ -1,5 +1,6 @@
 from config import *
 from train import LSTMModel, dataPreprocessing
+from sklearn.preprocessing import MinMaxScaler
 
 def implementModel(tic):
     # Load the full original dataset to retrieve dates
@@ -63,7 +64,7 @@ def getAnomalies(tic):
     train_score_df = pd.DataFrame(train[sequence_length:]).reset_index(drop=True)
     train_score_df['loss'] = train_mae_loss
     train_score_df['threshold'] = train_threshold
-    train_score_df['anomaly'] = train_score_df['loss'] > train_score_df['threshold']
+    train_score_df['anomaly'] = train_score_df['loss']
 
     # Inverse transform the close prices back to their original scale
     train_score_df['close'] = scaler_target.inverse_transform(train[sequence_length:]['close'].values.reshape(-1, 1))
@@ -77,7 +78,7 @@ def getAnomalies(tic):
     test_score_df = pd.DataFrame(test[sequence_length:]).reset_index(drop=True)
     test_score_df['loss'] = test_mae_loss
     test_score_df['threshold'] = test_threshold
-    test_score_df['anomaly'] = test_score_df['loss'] > test_score_df['threshold']
+    test_score_df['anomaly'] = test_score_df['loss']
 
     # Inverse transform the close prices back to their original scale
     test_score_df['close'] = scaler_target.inverse_transform(test[sequence_length:]['close'].values.reshape(-1, 1))
@@ -86,6 +87,9 @@ def getAnomalies(tic):
     combined_df = pd.concat([train_score_df, test_score_df], ignore_index=True)
     # Select only date, tic, and anomaly columns for the final output
     final_df = combined_df[['date', 'tic', 'anomaly']]
+
+    scaler = MinMaxScaler()
+    final_df['anomaly'] = scaler.fit_transform(final_df[['anomaly']])
 
     print(final_df.head())
     anomaly_count = final_df['anomaly'].sum()

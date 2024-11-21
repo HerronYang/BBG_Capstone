@@ -4,11 +4,6 @@ import os
 # Load the CSV files
 final_merged_df = pd.read_csv('df_final_merged_renewed.csv')
 
-
-# Initialize the 'LSTM_anomaly' column in the final merged DataFrame with default values
-final_merged_df['LSTM_anomaly'] = False
-
-
 # Specify the directory containing the result files
 results_folder = 'results'
 
@@ -36,15 +31,9 @@ print(combined_result_df)
 # Merge combined_result_df with final_merged_df
 final_merged_df['date'] = pd.to_datetime(final_merged_df['date'], format='%Y-%m-%d')  # Ensure date formatting in final_merged_df
 final_merged_df = final_merged_df.merge(combined_result_df[['date', 'tic', 'anomaly']], on=['date', 'tic'], how='left')
+final_merged_df['anomaly'].fillna(value=0, inplace=True)  # Replace initial NaNs with 0
+final_merged_df['anomaly'].fillna(method='ffill', inplace=True)  # Forward-fill remaining NaNs
 
-
-print(final_merged_df['anomaly'].value_counts())
-
-# Display the first few rows to verify
-print(final_merged_df.head())
-
-final_merged_df['anomaly'] = final_merged_df['anomaly'].apply(lambda x: 1 if x is True else 0)
-final_merged_df.drop('LSTM_anomaly', axis=1, inplace=True)
-print(final_merged_df.head())
+print(final_merged_df)
 final_merged_df.to_csv('final_merged.csv')
 
