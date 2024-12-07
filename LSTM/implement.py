@@ -1,6 +1,39 @@
 from config import *
 from train import LSTMModel, dataPreprocessing
 from sklearn.preprocessing import MinMaxScaler
+from scipy.stats import norm
+import numpy as np
+
+
+def compute_anomaly_probabilities(loss_values):
+    """
+    Convert a list of loss values into anomaly probabilities using z-score standardization
+    and the survival function, similar to a scaler.
+
+    Parameters:
+    - loss_values (list or np.array): List or array of loss values.
+
+    Returns:
+    - np.array: Probabilities scaled between 0 and 1.
+    """
+    # Convert the list to a numpy array for easier computation
+    loss_values = np.array(loss_values)
+
+    # Compute mean and standard deviation
+    mean_loss = loss_values.mean()
+    std_loss = loss_values.std()
+
+    # Handle edge case: if all values are the same
+    if std_loss == 0:
+        return np.full_like(loss_values, 0.5, dtype=float)  # Default to neutral probability
+
+    # Standardize loss values (z-score)
+    z_scores = (loss_values - mean_loss) / std_loss
+
+    # Convert z-scores to probabilities using the survival function
+    probabilities = 1 - norm.sf(z_scores)
+
+    return probabilities
 
 def implementModel(tic):
     # Load the full original dataset to retrieve dates
@@ -63,7 +96,7 @@ def getAnomalies(tic):
 
     train_score_df = pd.DataFrame(train[sequence_length:]).reset_index(drop=True)
     train_score_df['loss'] = train_mae_loss
-    train_score_df['anomaly'] = scaler.fit_transform(train_score_df[['loss']])
+    train_score_df['anomaly'] = compute_anomaly_probabilities(train_score_df[['loss']])
 
     # Inverse transform the close prices back to their original scale
     train_score_df['close'] = scaler_target.inverse_transform(train[sequence_length:]['close'].values.reshape(-1, 1))
@@ -75,7 +108,7 @@ def getAnomalies(tic):
 
     test_score_df = pd.DataFrame(test[sequence_length:]).reset_index(drop=True)
     test_score_df['loss'] = test_mae_loss
-    test_score_df['anomaly'] = scaler.fit_transform(test_score_df[['loss']])
+    test_score_df['anomaly'] = compute_anomaly_probabilities(test_score_df[['loss']])
 
     # Inverse transform the close prices back to their original scale
     test_score_df['close'] = scaler_target.inverse_transform(test[sequence_length:]['close'].values.reshape(-1, 1))
